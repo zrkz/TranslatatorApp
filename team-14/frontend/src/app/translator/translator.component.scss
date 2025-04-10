@@ -1,0 +1,16 @@
+
+@import "./src/variables";
+
+.btn-translate {
+  background-color: $kn-light-blue;
+  color: $kn-transparent-blue;
+
+  &:hover {
+    background-color: $kn-dark-blue;
+  }
+}
+
+.go-to-project:hover {
+  cursor: pointer;
+  text-decoration-line: underline;
+}

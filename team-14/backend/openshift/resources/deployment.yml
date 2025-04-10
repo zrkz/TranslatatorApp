@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+      haproxy.router.openshift.io/timeout: 4m
+      template.openshift.io/expose-uri: https://{.spec.host}{.spec.path}
+    labels:
+      app: KN-translator
+      jenkins: translator-backend
+      template: translator-backend-template
+    name: translator-backend
+  spec:
+    host: "hackathon-2021-translator.int.kn"
+    path: "/api"
+    tls:
+      insecureEdgeTerminationPolicy: Redirect
+      termination: edge
+    to:
+      kind: Service
+      name: translator-backend
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    labels:
+      app: KN-translator
+      template: translator-backend-template
+    name: translator-backend-data
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 15Gi
+    storageClassName: silver-denot
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: "true"
+    labels:
+      app: KN-translator
+      template: translator-backend-template
+    name: translator-backend
+  spec:
+    replicas: 1
+    selector:
+      name: translator-backend
+    strategy:
+      type: Recreate
+      recreateParams:
+        timeoutSeconds: 1200
+    template:
+      metadata:
+        labels:
+          name: translator-backend
+      spec:
+        containers:
+          # add the image to the repository
+        - image: docker-registry.default.svc:5000/cp-388868/translator-backend:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            successThreshold: 1
+            httpGet:
+              path: /api/healthz
+              port: 8000
+            timeoutSeconds: 60
+          name: translator-backend
+          readinessProbe:
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            successThreshold: 1
+            httpGet:
+              path: /api/healthz
+              port: 8000
+            timeoutSeconds: 60
+          resources:
+            limits:
+              cpu: 8000m
+              memory: 18G
+            requests:
+              cpu: 2000m
+              memory: 3G
+          securityContext:
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /app/cache
+            name: translator-backend-data
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        volumes:
+        - name: translator-backend-data
+          persistentVolumeClaim:
+            claimName: translator-backend-data
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      service.openshift.io/infrastructure: "true"
+    labels:
+      app: KN-translator
+      template: translator-backend-template
+    name: translator-backend
+  spec:
+    ports:
+    - name: web
+      port: 8000
+      protocol: TCP
+      targetPort: 8000
+    selector:
+      name: translator-backend
+    sessionAffinity: None
+    type: ClusterIP

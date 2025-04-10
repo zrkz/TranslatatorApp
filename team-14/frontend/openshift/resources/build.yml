@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      app: KN-translator
+      build: translator-frontend
+      template: translator-frontend-build
+    name: translator-frontend
+  spec:
+    failedBuildsHistoryLimit: 5
+    output:
+      to:
+        kind: ImageStreamTag
+        name: translator-frontend:latest
+    runPolicy: Serial
+    source:
+      type: Binary
+    strategy:
+      dockerStrategy:
+        forcePull: true
+        noCache: true
+      type: Docker
+    successfulBuildsHistoryLimit: 5
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    generation: 1
+    labels:
+      app: KN-translator
+      build: translator-frontend
+      template: translator-frontend-build
+    name: translator-frontend
+  spec:
+    lookupPolicy:
+      local: false

@@ -1,0 +1,148 @@
+<div>
+  <h2 class="m-2 mat-elevation-z2 p-2">
+    <span class="go-to-project" (click)="goToProjectPage()">{{documentDetails.project}}</span>{{ ' > ' + documentDetails.srcLang + ' > ' + documentDetails.targetLang}}
+  </h2>
+
+  <div class="d-flex flex-column m-2 mat-elevation-z4">
+    <ng-container *ngIf="loadingTranslations then translationLoader else allTranslations"></ng-container>
+    <ng-template #translationLoader>
+      <div class="d-flex flex-column justify-content-center align-items-center p-5">
+        <mat-progress-spinner class="my-5" mode="indeterminate"></mat-progress-spinner>
+        <span class="my-5">Loading document ...</span>
+      </div>
+    </ng-template>
+    <ng-template #allTranslations>
+      <div appHighlightOnHover
+           class="w-100 d-flex flex-row align-items-center border-bottom"
+           *ngFor="let translation of translations">
+
+        <span class="w-100 p-2">{{translation.originalText}}</span>
+        <span class="px-2">
+        <button mat-icon-button class="btn-translate mat-elevation-z2" (click)="translate(translation)">
+          <mat-icon>auto_fix_high</mat-icon>
+        </button>
+      </span>
+        <span class="w-100 p-2">
+        <ng-container
+          [ngTemplateOutlet]="translation.translating ? showLoader : ((translation.translatedText || translation.suggestedTranslation || translation.editingTranslation) ? showTranslationEngine : showNoTranslation)"
+          [ngTemplateOutletContext]="{translation: translation}">
+        </ng-container>
+      </span>
+      </div>
+    </ng-template>
+
+  </div>
+</div>
+
+<ng-template #showLoader>
+  <div class="px-1 d-flex flex-row align-items-center my-2">
+    <mat-progress-spinner mode="indeterminate" diameter="20"></mat-progress-spinner>
+    <span class="ps-2">Translating...</span>
+  </div>
+</ng-template>
+
+<ng-template #showNoTranslation let-translation='translation'>
+  <div class="px-1 align-items-center d-flex">
+    <span class=" align-items-center d-flex text-muted flex-grow-1">
+      <mat-icon>warning_amber</mat-icon>
+      <i class="p-2">
+          No translation
+      </i>
+    </span>
+    <button mat-icon-button class="btn-action" (click)="editTranslation(translation)">
+      <mat-icon>edit</mat-icon>
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #showTranslationEngine let-translation='translation'>
+  <div class="px-1 align-items-center d-flex">
+    <ng-container
+      [ngTemplateOutlet]="translation.editingTranslation ? showEditTranslation : showTranslation"
+      [ngTemplateOutletContext]="{translation: translation}">
+    </ng-container>
+  </div>
+  <mat-divider *ngIf="translation.suggestedTranslation" class="my-1"></mat-divider>
+  <div *ngIf="translation.suggestedTranslation" class="ps-1 align-items-center d-flex">
+    <ng-container
+      [ngTemplateOutlet]="translation.editingSuggestion ? showEditSuggestion : (translation.failedToTranslate ? showSuggestionFailed : showSuggestion)"
+      [ngTemplateOutletContext]="{translation: translation}">
+    </ng-container>
+  </div>
+</ng-template>
+
+<ng-template #showSuggestion let-translation='translation'>
+  <mat-icon matTooltip="Machine translated">help_outline</mat-icon>
+  <span class="p-2 flex-grow-1">
+    {{translation.suggestedTranslation}}
+  </span>
+  <button mat-icon-button class="btn-action" (click)="approveSuggestion(translation)">
+    <mat-icon>done</mat-icon>
+  </button>
+  <button mat-icon-button class="btn-action" (click)="rejectSuggestion(translation)">
+    <mat-icon>close</mat-icon>
+  </button>
+  <button mat-icon-button class="btn-action" (click)="editSuggestion(translation)">
+    <mat-icon>edit</mat-icon>
+  </button>
+</ng-template>
+
+<ng-template #showSuggestionFailed let-translation='translation'>
+  <mat-icon>error_outline</mat-icon>
+  <span class="p-2 flex-grow-1">
+    Text could not be translated.
+  </span>
+  <button mat-icon-button class="btn-action" (click)="translate(translation)">
+    <mat-icon>refresh</mat-icon>
+  </button>
+  <button mat-icon-button class="btn-action" (click)="rejectSuggestion(translation)">
+    <mat-icon>close</mat-icon>
+  </button>
+</ng-template>
+
+<ng-template #showTranslation let-translation='translation'>
+  <span class="flex-grow-1">
+    {{translation.translatedText}}
+  </span>
+  <button mat-icon-button class="btn-action" (click)="editTranslation(translation)">
+    <mat-icon>edit</mat-icon>
+  </button>
+</ng-template>
+
+<ng-template #showEditSuggestion let-translation='translation'>
+  <span class="pt-2 flex-grow-1">
+    <mat-form-field>
+      <mat-label>Suggestion</mat-label>
+      <input matInput [(ngModel)]="translation.suggestionModel">
+    </mat-form-field>
+  </span>
+  <button mat-icon-button class="btn-action" *ngIf="translation.suggestionModel != translation.suggestedTranslation"
+          (click)="undoSuggestionChange(translation)">
+    <mat-icon>undo</mat-icon>
+  </button>
+  <button mat-icon-button class="btn-action" (click)="saveSuggestion(translation)">
+    <mat-icon>save</mat-icon>
+  </button>
+  <button mat-icon-button class="btn-action" (click)="cancelSuggestionChange(translation)">
+    <mat-icon>clear</mat-icon>
+  </button>
+</ng-template>
+
+<ng-template #showEditTranslation let-translation='translation'>
+  <span class="pt-2 flex-grow-1">
+    <mat-form-field>
+      <mat-label>Translation</mat-label>
+      <input matInput [(ngModel)]="translation.translationModel">
+    </mat-form-field>
+  </span>
+  <button mat-icon-button class="btn-action" *ngIf="translation.translationModel != translation.translatedText"
+          (click)="undoTranslationChange(translation)">
+    <mat-icon>undo</mat-icon>
+  </button>
+  <button mat-icon-button class="btn-action" (click)="saveTranslation(translation)">
+    <mat-icon>save</mat-icon>
+  </button>
+  <button mat-icon-button class="btn-action" (click)="cancelTranslationChange(translation)">
+    <mat-icon>clear</mat-icon>
+  </button>
+</ng-template>

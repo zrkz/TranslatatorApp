@@ -1,0 +1,64 @@
+# Python-specific
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# Virtual environments
+venv/
+.venv/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Environment / config files
+.env
+*.env
+.env.*
+
+# Jupyter Notebooks checkpoint files
+.ipynb_checkpoints/
+
+# Large or generated files
+*.csv
+*.tsv
+*.db
+*.sqlite
+*.h5
+*.zip
+*.tar.gz
+*.tar
+*.bak
+*.tmp
+*.log
+
+# Coverage / test reports
+htmlcov/
+.tox/
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+.cache/
+nosetests.xml
+pytest_cache/
+
+# MyPy
+.mypy_cache/
+
+# Logs and reports
+*.log
+*.out

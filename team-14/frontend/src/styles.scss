@@ -1,0 +1,32 @@
+/* You can add global styles to this file, and also import other style files */
+
+@import "~bootstrap/dist/css/bootstrap.min.css";
+@import "variables";
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Suisse Intl, Open Sans, Helvetica, Arial, sans-serif;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.highlight-element {
+  background-color: rgba(0, 153, 218, .1);
+}
+
+h1, h2, h3, h4, h5, h6, button.mat-icon-button.btn-action {
+  color: $kn-dark-blue !important;
+}
+
+mat-toolbar {
+  background-color: $kn-dark-blue !important;
+  ~ * > div {
+    height: calc(100vh - 80px);
+  }
+}

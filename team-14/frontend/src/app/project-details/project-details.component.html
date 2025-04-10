@@ -1,0 +1,38 @@
+<div class="d-flex flex-row m-2">
+  <div class="w-100 d-flex flex-column mat-elevation-z4">
+    <h2 class="m-2 pb-2 border-bottom">
+      {{project.name}}
+    </h2>
+    <div class="w-100 p-2 d-flex align-items-center">
+      <mat-form-field>
+        <mat-label>Supported languages</mat-label>
+        <input type="text" matInput [formControl]="languageSelectionControl" [matAutocomplete]="auto">
+        <mat-hint>Add new language to project</mat-hint>
+        <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn">
+          <mat-option *ngFor="let language of filteredLanguages | async" [value]="language">
+            {{language.text}}
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+      <button mat-icon-button class="btn-action" (click)="addLanguageSupport()">
+        <mat-icon>navigate_next</mat-icon>
+      </button>
+    </div>
+  </div>
+  <mat-divider [vertical]="true" class="mx-2"></mat-divider>
+  <div class="w-100 mat-elevation-z4">
+    <h2 class="m-2 pb-2 border-bottom">
+      Active languages
+    </h2>
+    <div *ngFor="let language of activeLanguages" appHighlightOnHover class="p-2 mx-2 border-bottom d-flex flex-row">
+      <span class="d-flex flex-grow-1 align-items-center">
+        {{language.name}}
+      </span>
+      <span>
+        <button mat-icon-button class="btn-action" (click)="openTranslatorPage(language)">
+          <mat-icon>navigate_next</mat-icon>
+        </button>
+      </span>
+    </div>
+  </div>
+</div>

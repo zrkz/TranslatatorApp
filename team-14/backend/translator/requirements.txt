@@ -1,0 +1,6 @@
+transformers
+sentencepiece
+protobuf
+torch
+torchvision
+torchaudio

@@ -1,0 +1,108 @@
+pipeline {
+  agent any
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '20'))
+    disableConcurrentBuilds()
+    timeout(time: 20, unit: 'MINUTES')
+    timestamps()
+    durabilityHint('PERFORMANCE_OPTIMIZED')
+  }
+  triggers {
+    pollSCM('* * * * *')
+  }
+
+  environment {
+    CLUSTER="EMEA-C1"
+
+    GIT_SHORT_COMMIT = "${env.GIT_COMMIT[0..7]}"
+    BUILD_VERSION = "${env.BUILD_NUMBER}-${env.GIT_SHORT_COMMIT}"
+
+    PIPELINE_JOB_NAME = "translator-backend-deployment"
+
+    PROD_NAMESPACE = "cp-388868"
+  }
+  post {
+    always {
+      script {
+        notifyBitbucket buildName: currentBuild.projectName,
+                        buildStatus: currentBuild.currentResult,
+                        credentialsId: "knfn.jenkins.bitbucket.user",
+                        stashServerBaseUrl: "https://git.int.kn"
+      }
+    }
+    failure {
+      emailext(
+        body: "Pipeline for Translator Backend (Hackathon 2021) deployment failed: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]\n\n${env.BUILD_URL}",
+        recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
+        subject: "Pipeline for Translator Backend (Hackathon 2021) deployment failed: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+        attachLog: true
+      )
+    }
+    fixed {
+      emailext(
+        body: "Pipeline for Translator Backend (Hackathon 2021) deployment fixed: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]\n\n${env.BUILD_URL}",
+        recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
+        subject: "Pipeline for Translator Backend (Hackathon 2021) deployment fixed: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+        attachLog: true
+      )
+    }
+  }
+
+  stages {
+    stage('Setup And Preconditions Validation') {
+      steps {
+        script {
+          currentBuild.displayName = "${env.BUILD_VERSION}"
+
+          notifyBitbucket buildName: currentBuild.projectName,
+                          buildStatus: 'INPROGRESS',
+                          credentialsId: "knfn.jenkins.bitbucket.user",
+                          stashServerBaseUrl: "https://git.int.kn"
+        }
+      }
+    }
+    stage('Start build of container') {
+      steps {
+        script {
+          openshift.withCluster(env.CLUSTER) {
+            openshift.withProject(env.PROD_NAMESPACE) {
+              openshift.apply(new File("${WORKSPACE}/backend/openshift/resources/build.yml").getText())
+
+              def result = openshift.startBuild("translator-backend", "--from-dir=${WORKSPACE}/backend/")
+              result.logs("-f")
+              result.describe()
+
+              def status = result.object().status.phase
+              echo "Status: ${status}"
+
+              if (status == 'Failed') error('Container image build failed')
+            }
+          }
+        }
+      }
+    }
+
+    stage('Apply template and deploy') {
+      steps {
+        script {
+          openshift.withCluster(env.CLUSTER) {
+            openshift.withProject(env.PROD_NAMESPACE) {
+              def result = openshift.apply(new File("${WORKSPACE}/backend/openshift/resources/deployment.yml").getText())
+
+              result.describe()
+
+              try {
+                result.narrow('dc').rollout().latest()
+              } catch (Exception ex) {
+                // ignore this exception if it indicates that a deployment is already running
+                if (!ex.getMessage().contains('already in progress')) {
+                  throw ex
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
